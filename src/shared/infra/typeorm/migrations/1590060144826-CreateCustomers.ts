@@ -17,7 +17,6 @@ export default class CreateCustomers1590060144826
           {
             name: 'name',
             type: 'varchar',
-            isNullable: false,
           },
           {
             name: 'email',
