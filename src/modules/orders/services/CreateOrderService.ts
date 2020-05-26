@@ -37,45 +37,33 @@ class CreateProductService {
       throw new AppError('This customer does not exists');
     }
 
-    const checkNegativeValues = products.some(product => product.quantity <= 0);
+    const findProducts = await this.productsRepository.findAllById(products);
 
-    if (checkNegativeValues) {
-      throw new AppError("You can't set quantities less than one");
-    }
+    const orderProducts = products.map(product => {
+      const { id: product_id, quantity } = product;
 
-    const productsFound = await this.productsRepository.findAllById(products);
+      if (!product_id || !quantity) {
+        throw new AppError('Invalid product data!');
+      }
 
-    if (productsFound.length !== products.length) {
-      throw new AppError('There are one or more products that are not found');
-    }
+      const findProd = findProducts.find(p => p.id === product_id);
 
-    const isOutOfStock = productsFound.some(productSome =>
-      products.some(prodSome => {
-        return productSome.quantity - prodSome.quantity < 0;
-      }),
-    );
+      if (!findProd || quantity > findProd.quantity) {
+        throw new AppError('Invalid product quantity');
+      }
 
-    if (isOutOfStock) {
-      throw new AppError(
-        'There are one or more products that are out of stock',
-      );
-    }
+      return {
+        product_id,
+        price: findProd.price,
+        quantity,
+      };
+    });
 
-    const productsUpdated = await this.productsRepository.updateQuantity(
-      products,
-    );
-
-    const productsMapped = productsUpdated.map(productMap => ({
-      product_id: productMap.id,
-      price: productMap.price,
-      quantity:
-        products.find(productFinder => productFinder.id === productMap.id)
-          ?.quantity || 0,
-    }));
+    await this.productsRepository.updateQuantity(products);
 
     const order = await this.ordersRepository.create({
       customer,
-      products: productsMapped,
+      products: orderProducts,
     });
 
     return order;
