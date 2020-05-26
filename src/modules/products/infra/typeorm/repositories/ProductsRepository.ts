@@ -51,7 +51,7 @@ class ProductsRepository implements IProductsRepository {
   ): Promise<Product[]> {
     products.map(async product => {
       const prodQuantity = await this.ormRepository.findOne(product.id);
-      if (prodQuantity) {
+      if (prodQuantity && prodQuantity.quantity >= product.quantity) {
         prodQuantity.quantity -= product.quantity;
         await this.ormRepository.save(prodQuantity);
       }
